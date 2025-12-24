@@ -1,5 +1,9 @@
 # MERN ThinkBoard
 
+# about thihs project 
+this project is for maintianing notes like 
+notes save
+
 A full-stack MERN (MongoDB, Express, React, Node.js) application.
 
 ## Project Structure

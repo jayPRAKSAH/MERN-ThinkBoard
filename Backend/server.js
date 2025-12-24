@@ -7,6 +7,9 @@ app.get("/api/notes",(req,res)=>{
 app.get("/api/home",(req,res)=>{
     res.send("Hello World");
 });
+app.get("/",(req,res)=>{
+    res.send("API is running....");
+});
 app.listen(7000,()=>{
 
 
