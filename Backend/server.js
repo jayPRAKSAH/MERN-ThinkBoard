@@ -1,15 +1,11 @@
 
 const express=require("express");
+import notesRoutes from './routes/notesRoutes.js';
+
 const app=express();
-app.get("/api/notes",(req,res)=>{
-    res.send("you got 5 notes ");
-});
-app.get("/api/home",(req,res)=>{
-    res.send("Hello World");
-});
-app.get("/",(req,res)=>{
-    res.send("API is running....");
-});
+app.use("/api/notes",notesRoutes);
+
+
 app.listen(7000,()=>{
 
 
