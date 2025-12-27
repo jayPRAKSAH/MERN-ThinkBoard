@@ -6,6 +6,7 @@ notes save
 
 A full-stack MERN (MongoDB, Express, React, Node.js) application.
 
+
 ## Project Structure
 
 - **Backend**: Node.js/Express API server

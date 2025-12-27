@@ -1,14 +1,25 @@
+const express = require("express");
+const cors = require("cors");
 
-const express=require("express");
-import notesRoutes from './routes/notesRoutes.js';
+const app = express();
 
-const app=express();
-app.use("/api/notes",notesRoutes);
+// Middleware
+app.use(cors());
+app.use(express.json());
 
+// Routes
+app.get("/api/notes", (req, res) => {
+    res.send("You got 20 notes");
+});
 
-app.listen(7000,()=>{
+app.get("/api/home", (req, res) => {
+    res.send("Hello World from ThinkBoard API!");
+});
 
+app.get("/", (req, res) => {
+    res.json({ message: "ThinkBoard Backend is running!" });
+});
 
-
+app.listen(7000, () => {
     console.log("Server is running on port 7000");
 });
