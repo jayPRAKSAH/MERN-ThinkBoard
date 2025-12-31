@@ -7,32 +7,63 @@ function App() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newNote, setNewNote] = useState({ title: '', content: '', color: '#FFE5B4' });
   const [searchTerm, setSearchTerm] = useState('');
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
-    // For now, using dummy data since backend doesn't have notes API yet
+    // Initialize with sample data
     const dummyNotes = [
-      { id: 1, title: 'Welcome to ThinkBoard', content: 'Start organizing your thoughts!', color: '#FFE5B4', date: new Date().toLocaleDateString() },
-      { id: 2, title: 'Project Ideas', content: 'Build a MERN stack app', color: '#B4E7FF', date: new Date().toLocaleDateString() },
-      { id: 3, title: 'To Do', content: 'Complete the frontend design', color: '#FFB4E5', date: new Date().toLocaleDateString() }
+      { id: 1, title: 'Welcome to ThinkBoard', content: 'Start organizing your thoughts!', color: '#FFE5B4', date: new Date().toLocaleDateString(), author: 'System' },
+      { id: 2, title: 'Project Ideas', content: 'Build a MERN stack app', color: '#B4E7FF', date: new Date().toLocaleDateString(), author: 'You' },
+      { id: 3, title: 'To Do', content: 'Complete the frontend design', color: '#FFB4E5', date: new Date().toLocaleDateString(), author: 'You' }
     ];
     setNotes(dummyNotes);
+    showNotification('✅ ThinkBoard loaded successfully!', 'success');
   }, []);
 
-  const addNote = () => {
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const addNote = async () => {
     if (newNote.title.trim() || newNote.content.trim()) {
       const note = {
         id: Date.now(),
         ...newNote,
-        date: new Date().toLocaleDateString()
+        date: new Date().toLocaleDateString(),
+        author: 'You'
       };
-      setNotes([...notes, note]);
-      setNewNote({ title: '', content: '', color: '#FFE5B4' });
-      setShowAddForm(false);
+      
+      // Call backend API
+      try {
+        await axios.post('http://localhost:7000/api/notes', note);
+        setNotes([note, ...notes]);
+        showNotification(
+          `📝 Note "${note.title || 'Untitled'}" created successfully! Content: "${note.content.substring(0, 30)}${note.content.length > 30 ? '...' : ''}"`,
+          'success'
+        );
+        setNewNote({ title: '', content: '', color: '#FFE5B4' });
+        setShowAddForm(false);
+      } catch (error) {
+        showNotification('❌ Failed to create note. Backend may not be running.', 'error');
+      }
     }
   };
 
-  const deleteNote = (id) => {
-    setNotes(notes.filter(note => note.id !== id));
+  const deleteNote = async (id) => {
+    const noteToDelete = notes.find(note => note.id === id);
+    
+    // Call backend API
+    try {
+      await axios.delete(`http://localhost:7000/api/notes/${id}`);
+      setNotes(notes.filter(note => note.id !== id));
+      showNotification(
+        `🗑️ Note "${noteToDelete?.title || 'Untitled'}" (ID: ${id}) deleted by ${noteToDelete?.author || 'You'} at ${new Date().toLocaleTimeString()}`,
+        'success'
+      );
+    } catch (error) {
+      showNotification('❌ Failed to delete note. Backend may not be running.', 'error');
+    }
   };
 
   const filteredNotes = notes.filter(note =>
@@ -42,6 +73,12 @@ function App() {
 
   return (
     <div className="App">
+      {notification && (
+        <div className={`notification ${notification.type}`}>
+          {notification.message}
+        </div>
+      )}
+      
       <header className="App-header">
         <div className="header-content">
           <h1>🧠 ThinkBoard</h1>
@@ -113,7 +150,9 @@ function App() {
                 </div>
                 <p className="note-content">{note.content}</p>
                 <div className="note-footer">
-                  <span className="note-date">{note.date}</span>
+                  <span className="note-author">👤 {note.author || 'Anonymous'}</span>
+                  <span className="note-date">📅 {note.date}</span>
+                  <span className="note-id">ID: {note.id}</span>
                 </div>
               </div>
             ))

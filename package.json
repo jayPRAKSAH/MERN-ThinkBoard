@@ -1,0 +1,17 @@
+{
+  "name": "mern-thinkboard",
+  "version": "1.0.0",
+  "description": "ThinkBoard - MERN Stack Application",
+  "scripts": {
+    "start": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd Backend && npm start",
+    "frontend": "cd Fronted && npm start",
+    "install-all": "npm install && cd Backend && npm install && cd ../Fronted && npm install"
+  },
+  "keywords": ["mern", "thinkboard", "notes"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
