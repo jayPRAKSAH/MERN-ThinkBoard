@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import './App.css';
 import axios from 'axios';
+import { AuthContext } from './contexts/AuthContext';
+import Login from './components/Login';
+import Register from './components/Register';
 
 function App() {
+  const { user, loading, logout, isAuthenticated } = useContext(AuthContext);
+  const [showRegister, setShowRegister] = useState(false);
   const [notes, setNotes] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newNote, setNewNote] = useState({ title: '', content: '', color: '#FFE5B4' });
@@ -10,15 +15,18 @@ function App() {
   const [notification, setNotification] = useState(null);
 
   useEffect(() => {
-    // Initialize with sample data
-    const dummyNotes = [
-      { id: 1, title: 'Welcome to ThinkBoard', content: 'Start organizing your thoughts!', color: '#FFE5B4', date: new Date().toLocaleDateString(), author: 'System' },
-      { id: 2, title: 'Project Ideas', content: 'Build a MERN stack app', color: '#B4E7FF', date: new Date().toLocaleDateString(), author: 'You' },
-      { id: 3, title: 'To Do', content: 'Complete the frontend design', color: '#FFB4E5', date: new Date().toLocaleDateString(), author: 'You' }
-    ];
-    setNotes(dummyNotes);
-    showNotification('✅ ThinkBoard loaded successfully!', 'success');
-  }, []);
+    // Only load notes if user is authenticated
+    if (isAuthenticated) {
+      // Initialize with sample data
+      const dummyNotes = [
+        { id: 1, title: 'Welcome to ThinkBoard', content: 'Start organizing your thoughts!', color: '#FFE5B4', date: new Date().toLocaleDateString(), author: 'System' },
+        { id: 2, title: 'Project Ideas', content: 'Build a MERN stack app', color: '#B4E7FF', date: new Date().toLocaleDateString(), author: 'You' },
+        { id: 3, title: 'To Do', content: 'Complete the frontend design', color: '#FFB4E5', date: new Date().toLocaleDateString(), author: 'You' }
+      ];
+      setNotes(dummyNotes);
+      showNotification(`✅ Welcome back, ${user?.name || 'User'}!`, 'success');
+    }
+  }, [isAuthenticated]);
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
@@ -71,6 +79,26 @@ function App() {
     note.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Show loading spinner while checking auth status
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Show Login or Register if not authenticated
+  if (!isAuthenticated) {
+    return showRegister ? (
+      <Register onSwitchToLogin={() => setShowRegister(false)} />
+    ) : (
+      <Login onSwitchToRegister={() => setShowRegister(true)} />
+    );
+  }
+
+  // Show main app if authenticated
   return (
     <div className="App">
       {notification && (
@@ -83,6 +111,10 @@ function App() {
         <div className="header-content">
           <h1>🧠 ThinkBoard</h1>
           <p className="tagline">Organize Your Thoughts & Ideas</p>
+        </div>
+        <div className="user-info">
+          <span className="welcome-text">👋 {user?.name}</span>
+          <button className="logout-btn" onClick={logout}>Logout</button>
         </div>
       </header>
 
