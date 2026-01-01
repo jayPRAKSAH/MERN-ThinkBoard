@@ -38,7 +38,7 @@ function Login({ onSwitchToRegister }) {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>🧠 ThinkBoard</h1>
+        <h1>ThinkBoard</h1>
         <h2>Welcome Back</h2>
         <p className="auth-subtitle">Login to access your notes</p>
 

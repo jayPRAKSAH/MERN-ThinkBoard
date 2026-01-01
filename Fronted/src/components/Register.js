@@ -52,7 +52,7 @@ function Register({ onSwitchToLogin }) {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>🧠 ThinkBoard</h1>
+        <h1>ThinkBoard</h1>
         <h2>Create Account</h2>
         <p className="auth-subtitle">Start organizing your thoughts today</p>
 

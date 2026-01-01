@@ -26,7 +26,7 @@ function App() {
       setNotes(dummyNotes);
       showNotification(`✅ Welcome back, ${user?.name || 'User'}!`, 'success');
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.name]);
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
@@ -109,7 +109,7 @@ function App() {
       
       <header className="App-header">
         <div className="header-content">
-          <h1> ThinkBoard</h1>
+          <h1>📝 ThinkBoard</h1>
           <p className="tagline">Organize Your Thoughts & Ideas</p>
         </div>
         <div className="user-info">

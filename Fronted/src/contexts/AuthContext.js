@@ -56,9 +56,10 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true, message: response.data.message };
     } catch (error) {
+      console.error('Registration error:', error);
       return { 
         success: false, 
-        message: error.response?.data?.error || 'Registration failed' 
+        message: error.response?.data?.error || error.message || 'Registration failed. Please check if backend is running.' 
       };
     }
   };
@@ -80,9 +81,10 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true, message: response.data.message };
     } catch (error) {
+      console.error('Login error:', error);
       return { 
         success: false, 
-        message: error.response?.data?.error || 'Login failed' 
+        message: error.response?.data?.error || error.message || 'Login failed. Please check if backend is running.' 
       };
     }
   };
