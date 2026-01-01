@@ -109,7 +109,7 @@ function App() {
       
       <header className="App-header">
         <div className="header-content">
-          <h1>🧠 ThinkBoard</h1>
+          <h1> ThinkBoard</h1>
           <p className="tagline">Organize Your Thoughts & Ideas</p>
         </div>
         <div className="user-info">
