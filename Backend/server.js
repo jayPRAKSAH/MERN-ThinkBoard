@@ -1,7 +1,13 @@
 const express = require("express");
 const cors = require("cors");
+const connectDB = require("./config/db");
+const authRoutes = require('./routes/auth');
+require('dotenv').config();
 
 const app = express();
+
+// Connect to MongoDB Database
+connectDB();
 
 // Middleware
 app.use(cors());
@@ -37,10 +43,17 @@ app.get("/", (req, res) => {
     res.json({ message: "ThinkBoard Backend is running!" });
 });
 
+// Auth routes - register, login, me
+app.use('/api/auth', authRoutes);
+
 app.listen(7000, () => {
     console.log("🚀 Server is running on port 7000");
     console.log("📡 API endpoints ready:");
     console.log("   GET    http://localhost:7000/api/notes");
     console.log("   POST   http://localhost:7000/api/notes");
     console.log("   DELETE http://localhost:7000/api/notes/:id");
+    console.log("🔐 Auth endpoints:");
+    console.log("   POST   http://localhost:7000/api/auth/register");
+    console.log("   POST   http://localhost:7000/api/auth/login");
+    console.log("   GET    http://localhost:7000/api/auth/me");
 });
