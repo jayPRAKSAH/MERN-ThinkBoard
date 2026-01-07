@@ -56,4 +56,8 @@ app.listen(7000, () => {
     console.log("   POST   http://localhost:7000/api/auth/register");
     console.log("   POST   http://localhost:7000/api/auth/login");
     console.log("   GET    http://localhost:7000/api/auth/me");
+    console.log("🌐 Home endpoint:");
+    console.log("   GET    http://localhost:7000/api/home");        
+    console.log("=========================================");   
+    
 });
