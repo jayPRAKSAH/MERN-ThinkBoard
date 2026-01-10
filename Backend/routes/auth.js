@@ -17,8 +17,8 @@ const auth = async (req, res, next) => {
     // Verify token and extract user ID
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Find user by ID (token contains user._id)
-    const user = await User.findById(decoded._id);
+    // Find user by ID (token contains user.id)
+    const user = await User.findById(decoded.id);
     
     if (!user) {
       throw new Error('User not found');

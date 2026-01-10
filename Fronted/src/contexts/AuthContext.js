@@ -15,23 +15,40 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       const savedToken = localStorage.getItem('token');
       
-      if (savedToken) {
-        try {
-          // Verify token by calling /me endpoint
-          const response = await axios.get('http://localhost:7000/api/auth/me', {
-            headers: { Authorization: `Bearer ${savedToken}` }
-          });
-          
-          setUser(response.data.user); // Set user data
-          setToken(savedToken);
-        } catch (error) {
-          // Token invalid or expired, clear it
+      if (!savedToken) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Verify token by calling /me endpoint
+        const response = await axios.get('http://localhost:7000/api/auth/me', {
+          headers: { Authorization: `Bearer ${savedToken}` },
+          timeout: 5000 // 5 second timeout
+        });
+        
+        console.log('✅ Token valid, user logged in:', response.data.user.name);
+        setUser(response.data.user); // Set user data
+        setToken(savedToken);
+      } catch (error) {
+        console.error('Auth check error:', error.response?.status, error.message);
+        
+        // Only clear token if it's actually an auth error (401)
+        if (error.response?.status === 401) {
+          console.log('❌ Token invalid (401), clearing...');
           localStorage.removeItem('token');
           setToken(null);
+          setUser(null);
+        } else {
+          // Network error or timeout - DON'T clear token yet
+          // Try to load user anyway (offline mode)
+          console.log('⚠️ Network error, attempting to continue with saved token');
+          setToken(savedToken);
+          // Don't set user yet, wait for connection
         }
+      } finally {
+        setLoading(false); // Always stop loading
       }
-      
-      setLoading(false); // Done checking
     };
 
     checkAuth();
@@ -74,10 +91,16 @@ export const AuthProvider = ({ children }) => {
 
       const { user, token } = response.data;
       
+      console.log('🔐 Login successful, saving token...');
+      console.log('Token length:', token?.length);
+      console.log('User:', user?.name);
+      
       localStorage.setItem('token', token);
       
       setUser(user);
       setToken(token);
+      
+      console.log('✅ Token saved to localStorage');
       
       return { success: true, message: response.data.message };
     } catch (error) {
@@ -91,6 +114,7 @@ export const AuthProvider = ({ children }) => {
 
   // LOGOUT function - clear user session
   const logout = () => {
+    console.log('👋 Logging out, clearing token...');
     localStorage.removeItem('token');
     setUser(null);
     setToken(null);

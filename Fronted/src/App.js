@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import './App.css';
 import axios from 'axios';
 import { AuthContext } from './contexts/AuthContext';
@@ -13,64 +13,122 @@ function App() {
   const [newNote, setNewNote] = useState({ title: '', content: '', color: '#FFE5B4' });
   const [searchTerm, setSearchTerm] = useState('');
   const [notification, setNotification] = useState(null);
+  const [notesLoaded, setNotesLoaded] = useState(false);
 
-  useEffect(() => {
-    // Only load notes if user is authenticated
-    if (isAuthenticated) {
-      // Initialize with sample data
-      const dummyNotes = [
-        { id: 1, title: 'Welcome to ThinkBoard', content: 'Start organizing your thoughts!', color: '#FFE5B4', date: new Date().toLocaleDateString(), author: 'System' },
-        { id: 2, title: 'Project Ideas', content: 'Build a MERN stack app', color: '#B4E7FF', date: new Date().toLocaleDateString(), author: 'You' },
-        { id: 3, title: 'To Do', content: 'Complete the frontend design', color: '#FFB4E5', date: new Date().toLocaleDateString(), author: 'You' }
-      ];
-      setNotes(dummyNotes);
-      showNotification(`✅ Welcome back, ${user?.name || 'User'}!`, 'success');
-    }
-  }, [isAuthenticated, user?.name]);
-
-  const showNotification = (message, type = 'success') => {
+  const showNotification = useCallback((message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
-  };
+  }, []);
+
+  const fetchNotes = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        return;
+      }
+
+      const response = await axios.get('http://localhost:7000/api/notes', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotes(response.data);
+      setNotesLoaded(true);
+      
+      // Only show welcome message on first load
+      if (!notesLoaded && user) {
+        showNotification(`✅ Welcome back, ${user.name}! Loaded ${response.data.length} notes.`, 'success');
+      }
+    } catch (error) {
+      console.error('Fetch notes error:', error);
+      console.error('Error response:', error.response?.data);
+      
+      // If user not found (401), force logout
+      if (error.response?.status === 401) {
+        console.log('❌ Auth failed, logging out...');
+        setTimeout(() => {
+          logout();
+        }, 500);
+      }
+    }
+  }, [showNotification, notesLoaded, user, logout]);
+
+  useEffect(() => {
+    if (isAuthenticated && user && !notesLoaded) {
+      fetchNotes();
+    }
+  }, [isAuthenticated, user, notesLoaded, fetchNotes]);
+
+  // Reset notesLoaded when user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setNotesLoaded(false);
+      setNotes([]);
+    }
+  }, [isAuthenticated]);
 
   const addNote = async () => {
     if (newNote.title.trim() || newNote.content.trim()) {
-      const note = {
-        id: Date.now(),
-        ...newNote,
-        date: new Date().toLocaleDateString(),
-        author: 'You'
-      };
-      
-      // Call backend API
       try {
-        await axios.post('http://localhost:7000/api/notes', note);
-        setNotes([note, ...notes]);
-        showNotification(
-          `📝 Note "${note.title || 'Untitled'}" created successfully! Content: "${note.content.substring(0, 30)}${note.content.length > 30 ? '...' : ''}"`,
-          'success'
+        const token = localStorage.getItem('token');
+        console.log('Token exists:', !!token);
+        
+        const response = await axios.post(
+          'http://localhost:7000/api/notes',
+          { title: newNote.title, content: newNote.content, color: newNote.color },
+          { headers: { Authorization: `Bearer ${token}` } }
         );
+        setNotes([response.data.note, ...notes]);
+        showNotification(`📝 Note "${response.data.note.title || 'Untitled'}" created successfully!`, 'success');
         setNewNote({ title: '', content: '', color: '#FFE5B4' });
         setShowAddForm(false);
       } catch (error) {
-        showNotification('❌ Failed to create note. Backend may not be running.', 'error');
+        console.error('Add note error:', error);
+        console.error('Error details:', error.response?.data);
+        
+        // If user not found or auth error, force logout and fresh login
+        if (error.response?.status === 401) {
+          showNotification('🔒 Session invalid. Please login again.', 'error');
+          setTimeout(() => {
+            logout();
+          }, 1500);
+        } else {
+          const errorMsg = error.response?.data?.error || '❌ Failed to create note';
+          showNotification(errorMsg, 'error');
+        }
       }
     }
   };
 
   const deleteNote = async (id) => {
-    const noteToDelete = notes.find(note => note.id === id);
-    
-    // Call backend API
+    const noteToDelete = notes.find(note => note._id === id);
     try {
-      await axios.delete(`http://localhost:7000/api/notes/${id}`);
-      setNotes(notes.filter(note => note.id !== id));
-      showNotification(
-        `🗑️ Note "${noteToDelete?.title || 'Untitled'}" (ID: ${id}) deleted by ${noteToDelete?.author || 'You'} at ${new Date().toLocaleTimeString()}`,
-        'success'
-      );
+      await axios.delete(`http://localhost:7000/api/notes/${id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setNotes(notes.filter(note => note._id !== id));
+      showNotification(`🗑️ Note "${noteToDelete?.title || 'Untitled'}" deleted successfully!`, 'success');
     } catch (error) {
-      showNotification('❌ Failed to delete note. Backend may not be running.', 'error');
+      console.error('Delete note error:', error);
+      showNotification(error.response?.data?.error || '❌ Failed to delete note', 'error');
+    }
+  };
+
+  const clearAllNotes = async () => {
+    if (window.confirm(`Are you sure you want to delete all ${notes.length} notes? This cannot be undone!`)) {
+      try {
+        await Promise.all(
+          notes.map(note => 
+            axios.delete(`http://localhost:7000/api/notes/${note._id}`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            })
+          )
+        );
+        setNotes([]);
+        showNotification('🗑️ All notes cleared successfully!', 'success');
+      } catch (error) {
+        console.error('Clear all notes error:', error);
+        showNotification('❌ Failed to clear all notes', 'error');
+      }
     }
   };
 
@@ -79,7 +137,6 @@ function App() {
     note.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Show loading spinner while checking auth status
   if (loading) {
     return (
       <div className="loading-container">
@@ -89,7 +146,6 @@ function App() {
     );
   }
 
-  // Show Login or Register if not authenticated
   if (!isAuthenticated) {
     return showRegister ? (
       <Register onSwitchToLogin={() => setShowRegister(false)} />
@@ -98,7 +154,6 @@ function App() {
     );
   }
 
-  // Show main app if authenticated
   return (
     <div className="App">
       {notification && (
@@ -129,9 +184,20 @@ function App() {
               className="search-input"
             />
           </div>
-          <button className="add-note-btn" onClick={() => setShowAddForm(!showAddForm)}>
-            ➕ Add Note
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {notes.length > 0 && (
+              <button 
+                className="logout-btn" 
+                onClick={clearAllNotes}
+                style={{ background: '#ff4757' }}
+              >
+                🗑️ Clear All
+              </button>
+            )}
+            <button className="add-note-btn" onClick={() => setShowAddForm(!showAddForm)}>
+              ➕ Add Note
+            </button>
+          </div>
         </div>
 
         {showAddForm && (
@@ -175,16 +241,15 @@ function App() {
             </div>
           ) : (
             filteredNotes.map(note => (
-              <div key={note.id} className="note-card" style={{ background: note.color }}>
+              <div key={note._id} className="note-card" style={{ background: note.color }}>
                 <div className="note-header">
                   <h3>{note.title || 'Untitled'}</h3>
-                  <button className="delete-btn" onClick={() => deleteNote(note.id)}>×</button>
+                  <button className="delete-btn" onClick={() => deleteNote(note._id)}>×</button>
                 </div>
                 <p className="note-content">{note.content}</p>
                 <div className="note-footer">
-                  <span className="note-author">👤 {note.author || 'Anonymous'}</span>
-                  <span className="note-date">📅 {note.date}</span>
-                  <span className="note-id">ID: {note.id}</span>
+                  <span className="note-date">📅 {new Date(note.createdAt).toLocaleDateString()}</span>
+                  <span className="note-id">ID: {note._id.slice(-6)}</span>
                 </div>
               </div>
             ))
